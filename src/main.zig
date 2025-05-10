@@ -14,6 +14,18 @@ pub fn main() !void {
             .name = "help",
             .func = &cmd.methods.commands.helpFn,
         },
+
+        // FILE OPERATION
+        cli.command {
+            .name = "createfile",
+            .func = &cmd.methods.commands.createFileFn,
+            .req = &.{"filename"},
+        },
+        cli.command {
+            .name = "readfile",
+            .func = &cmd.methods.commands.readFileFn,
+            .req = &.{"path"},
+        },
     };
 
     const options = [_]cli.option {
@@ -29,6 +41,18 @@ pub fn main() !void {
             .long = "greeting",
             .func = &cmd.methods.options.greetingFn,
         },
+        cli.option {
+            .name = "filename",
+            .short = 'f',
+            .long = "filename",
+            .func = &cmd.methods.options.filenameFn,
+        },
+        cli.option {
+            .name = "path",
+            .short = 'p',
+            .long = "path",
+            .func = &cmd.methods.options.pathFn,
+        }
     };
 
     try cli.start(&commands, &options, true);

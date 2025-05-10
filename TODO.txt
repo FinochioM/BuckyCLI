@@ -1,0 +1,8 @@
++ Command Grouping.
++ Adding Color to the Syntax.
+
++ File operations commands.
+ # Create File -> createfile -f <name-of-file> (Check later what other attributes should go here).
+ # Read File -> readfile -p <path-to-the-file> (This OPENS the file first and then READS it).
+ # Delete File -> deletefile -f <name-of-file> (Maybe use a path, only name can cause problems).
+ # Write to file -> writetofile -f <name-of-file> --c <content-to-write> (It would be nice to be able to write FROM another TXT file for longer strings).

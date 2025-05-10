@@ -160,3 +160,16 @@ pub fn startWithArgs(commands: []const command, options: []const option, args: a
 
     if (debug) std.debug.print("Command executed succesfully: {s}\n", .{cmd.name});
 }
+
+pub const Color = enum {
+    Reset,
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+};
+

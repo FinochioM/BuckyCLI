@@ -52,3 +52,9 @@
 /.zig-cache/z/ad99713b165d2375c53cfb1e0499ed05
 /.zig-cache/z/db0a89048494d969f25cac1cc61910fc
 /.zig-cache/z/e17401cb05c6d779d54f17eb609e3759
+
+
+/.zig-cache
+/.zig-cache/*
+/zig-out
+/zig-out/*
