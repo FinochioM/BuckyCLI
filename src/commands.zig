@@ -126,7 +126,67 @@ pub const methods = struct {
 
             return true;
         }
-    };
+
+        pub fn separateCopyFileFn(source_path: []const u8, dest_path: []const u8) !void {
+            const source_file = try fs.cwd().openFile(source_path, .{});
+            defer source_file.close();
+
+            const source_size = try source_file.getEndPos();
+
+            if (std.fs.path.dirname(dest_path)) |dir| {
+                try fs.cwd().makePath(dir);
+            }
+
+            const dest_file = try fs.cwd().createFile(dest_path, .{});
+            defer dest_file.close();
+
+            var buffer: [8192]u8 = undefined;
+            var bytes_read: usize = 0;
+
+            while (bytes_read < source_size) {
+                const n = try source_file.read(buffer[0..]);
+                if (n == 0) break;
+
+                try dest_file.writeAll(buffer[0..n]);
+                bytes_read += n;
+            }
+
+            std.debug.print("File copied from {s} to {s}\n", .{source_path, dest_path});
+        }
+
+        // the source file must exist before the execution but the dest file will be created if it does not exist.
+        // if the dest file exists it will just replace its content.
+        pub fn copyFileFn(_options: []const cli.option) bool {
+                var source_path: []const u8 = undefined;
+                var dest_path: []const u8 = undefined;
+                var source_found = false;
+                var dest_found = false;
+
+                for (_options) |opt| {
+                    if (std.mem.eql(u8, opt.name, "source")) {
+                        source_path = opt.value;
+                        source_found = true;
+                    } else if (std.mem.eql(u8, opt.name, "destination")) {
+                        dest_path = opt.value;
+                        dest_found = true;
+                    }
+                }
+
+                if (!source_found or !dest_found) {
+                    std.debug.print("Both source and destination path are required arguments\n", .{});
+                    return false;
+                }
+
+                if (separateCopyFileFn(source_path, dest_path)) |_| {
+                    // success does nothing here again lol
+                } else |err| {
+                    std.debug.print("Error copying file: {}\n", .{err});
+                    return false;
+                }
+
+                return true;
+            }
+        };
 
     pub const options = struct {
         pub fn nameFn(_: []const u8) bool {
@@ -139,6 +199,12 @@ pub const methods = struct {
             return true;
         }
         pub fn pathFn(_: []const u8) bool {
+            return true;
+        }
+        pub fn sourceFn(_: []const u8) bool {
+            return true;
+        }
+        pub fn destinationFn(_: []const u8) bool {
             return true;
         }
     };

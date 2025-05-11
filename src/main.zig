@@ -31,6 +31,11 @@ pub fn main() !void {
             .func = &cmd.methods.commands.createFileWithPathFn,
             .req = &.{"path"},
         },
+        cli.command {
+            .name = "copyfile",
+            .func = &cmd.methods.commands.copyFileFn,
+            .req = &.{"source", "destination"},
+        },
     };
 
     const options = [_]cli.option {
@@ -57,7 +62,19 @@ pub fn main() !void {
             .short = 'p',
             .long = "path",
             .func = &cmd.methods.options.pathFn,
-        }
+        },
+        cli.option {
+            .name = "source",
+            .short = 's',
+            .long = "source",
+            .func = &cmd.methods.options.sourceFn,
+        },
+        cli.option {
+            .name = "destination",
+            .short = 'd',
+            .long = "destination",
+            .func = &cmd.methods.options.destinationFn,
+        },
     };
 
     try cli.start(&commands, &options, true);
