@@ -26,6 +26,11 @@ pub fn main() !void {
             .func = &cmd.methods.commands.readFileFn,
             .req = &.{"path"},
         },
+        cli.command {
+            .name = "createfilewithpath",
+            .func = &cmd.methods.commands.createFileWithPathFn,
+            .req = &.{"path"},
+        },
     };
 
     const options = [_]cli.option {

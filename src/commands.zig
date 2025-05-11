@@ -92,6 +92,40 @@ pub const methods = struct {
 
             return true;
         }
+
+        pub fn separateCreateFileWithPathFn(path: []const u8) !void {
+            if (std.fs.path.dirname(path)) |dir| {
+                try fs.cwd().makePath(dir);
+            }
+
+            const file = try fs.cwd().createFile(
+                path,
+                .{},
+            );
+
+            defer file.close();
+
+            std.debug.print("File created at: {s}\n", .{path});
+        }
+
+        pub fn createFileWithPathFn(_options: []const cli.option) bool {
+            var filepath: []const u8 = undefined;
+
+            for (_options) |opt| {
+                if (std.mem.eql(u8, opt.name, "path")) {
+                    filepath = opt.value;
+
+                    if (separateCreateFileWithPathFn(filepath)) |_| {
+                        // success does nothing here.
+                    } else |err| {
+                        std.debug.print("Error creating the file: {}\n", .{err});
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
     };
 
     pub const options = struct {
