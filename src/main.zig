@@ -36,6 +36,11 @@ pub fn main() !void {
             .func = &cmd.methods.commands.copyFileFn,
             .req = &.{"source", "destination"},
         },
+        cli.command {
+          .name = "writefile",
+          .func = &cmd.methods.commands.writeToFileFn,
+          .req = &.{"source", "text"},
+        },
     };
 
     const options = [_]cli.option {
@@ -74,6 +79,12 @@ pub fn main() !void {
             .short = 'd',
             .long = "destination",
             .func = &cmd.methods.options.destinationFn,
+        },
+        cli.option {
+            .name = "text",
+            .short = 't',
+            .long = "text",
+            .func = &cmd.methods.options.textFn,
         },
     };
 

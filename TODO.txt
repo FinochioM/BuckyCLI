@@ -2,9 +2,11 @@
 + Adding Color to the Syntax.
 
 + File operations commands.
-- create a file but with a specified path too, not only the name. -
-# read the content of a file, copy it and paste it in a new file. (i guess this would only work with files that have an actual text? like any programming language file or plain text? i dont know, just wondering)
 # open a file with a certain app (maybe have windows show the window to select the application like when it doesnt know which application to use, for example if we use this command with a txt file, the user could select the notepad or whatever app to open it)
 # delete a file with a specified path, so the user can actually select the exact file they want to delete.
-# write to a file directly from the command. So for example "writefile -t <value-to-write>. Where the "-t" would serve as "-text".
-# write to a file from another file. This would be similar to the write to a file but instead of the user inserting the text to be written, they insert another file and the command should read that other file, copy it and paste it into the other file.
+
+
++ DONE:
+- create a file but with a specified path too, not only the name.
+- read the content of a file, copy it and paste it in a new file. (i guess this would only work with files that have an actual text? like any programming language file or plain text? i dont know, just wondering) -
+- write to a file directly from the command. So for example "writefile -t <value-to-write>. Where the "-t" would serve as "-text".

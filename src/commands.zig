@@ -186,7 +186,48 @@ pub const methods = struct {
 
                 return true;
             }
-        };
+
+            pub fn separateWriteFileFn(file_path: []const u8, text: []const u8) !void {
+                const file = try fs.cwd().openFile(file_path, .{ .mode = .write_only});
+                defer file.close();
+
+                try file.writeAll(text);
+
+                std.debug.print("Written the file with the following text: {s}\n", .{text});
+            }
+
+            pub fn writeToFileFn(_options: []const cli.option) bool {
+                var file_path: []const u8 = undefined;
+                var text: []const u8 = undefined;
+                var file_exists = false;
+                var has_text = false;
+
+                for (_options) |opt| {
+                    if (std.mem.eql(u8, opt.name, "source")) {
+                        file_path = opt.value;
+                        file_exists = true;
+                    }else if (std.mem.eql(u8, opt.name, "text")) {
+                        text = opt.value;
+                        has_text = true;
+                    }
+                }
+
+
+                if (!file_exists or !has_text) {
+                    std.debug.print("Both 'file path' and 'text' are required arguments", .{});
+                    return false;
+                }
+
+                if (separateWriteFileFn(file_path, text)) |_| {
+                    // success does nothing here again again...
+                } else |err| {
+                    std.debug.print("Error writing to file: {}\n", .{err});
+                    return false;
+                }
+
+                return true;
+            }
+    };
 
     pub const options = struct {
         pub fn nameFn(_: []const u8) bool {
@@ -205,6 +246,9 @@ pub const methods = struct {
             return true;
         }
         pub fn destinationFn(_: []const u8) bool {
+            return true;
+        }
+        pub fn textFn(_: []const u8) bool {
             return true;
         }
     };
