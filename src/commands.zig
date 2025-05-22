@@ -23,17 +23,7 @@ pub const methods = struct {
         }
 
         pub fn helpFn(_: []const cli.option) bool {
-            std.debug.print(
-                "Usage: my-cli <command> [options]\n" ++
-                "Commands:\n" ++
-                "  hello    Greet someone\n" ++
-                "  help     Show this help message\n" ++
-                "" ++
-                "Options for hello:\n" ++
-                "  -n, --name <value>    Name to greet\n" ++
-                "  -g, --greetings <value> Change the default 'Hello' greeting message\n"
-                , .{}
-            );
+            generateHelpCommand();
             return true;
         }
 
