@@ -13,6 +13,7 @@ pub const command = struct {
     func: fnType,
     req: Slices = &.{},
     opt: Slices = &.{},
+    has_subcommand: bool = false,
     const fnType = *const fn([]const option) bool;
 };
 
@@ -123,7 +124,7 @@ pub fn startWithArgs(commands: []const command, options: []const option, args: a
     }
 
     if (detected_command == null) {
-        if (debug) std.debug.print("Unknown command: {s}n", .{command_name});
+        if (debug) std.debug.print("Unknown command: {s}\n", .{command_name});
         return Error.UnknownCommand;
     }
 
@@ -134,6 +135,24 @@ pub fn startWithArgs(commands: []const command, options: []const option, args: a
     var detected_options: [MAX_OPTIONS]option = undefined;
     var detected_len: usize = 0;
     var i: usize = 2;
+
+    if (cmd.has_subcommand and i < args.len) {
+        const subcommand_arg = args[i];
+
+        if (!std.mem.startsWith(u8, subcommand_arg, "-")) {
+            var subcommand_opt: option = undefined;
+            for (options) |opt| {
+                if (std.mem.eql(u8, opt.name, "subcommand")) {
+                    subcommand_opt = opt;
+                    subcommand_opt.value = subcommand_arg;
+                    detected_options[detected_len] = subcommand_opt;
+                    detected_len += 1;
+                    i += 1;
+                    break;
+                }
+            }
+        }
+    }
 
     while (i < args.len) {
         const arg = args[i];

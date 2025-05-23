@@ -1,6 +1,7 @@
 const std = @import("std");
 const cli = @import("cli.zig");
 const cmd = @import("commands.zig");
+const init_cmd = @import("init_commands.zig");
 
 pub fn main() !void {
     const base_commands = [_]cli.command {
@@ -9,6 +10,14 @@ pub fn main() !void {
             .func = &cmd.methods.commands.helloFn,
             .req = &.{"greeting"},
             .opt = &.{"name"},
+        },
+
+        // INIT COMMAND WITH SUBCOMMAND
+        cli.command {
+            .name = "init",
+            .func = &init_cmd.initFn,
+            .has_subcommand = true,
+            .req = &.{"subcommand"},
         },
 
         // FILE OPERATION
@@ -82,6 +91,12 @@ pub fn main() !void {
             .long = "text",
             .func = &cmd.methods.options.textFn,
         },
+        cli.option {
+            .name = "subcommand",
+            .short = 0,
+            .long = "subcommand",
+            .func = &init_cmd.subcommandFn,
+        }
     };
 
     var commands: [base_commands.len + 1]cli.command = undefined;
