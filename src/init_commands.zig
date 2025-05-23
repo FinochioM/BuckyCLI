@@ -222,6 +222,36 @@ const gitignore_general =
     \\.env.local
 ;
 
+const changelog_template =
+    \\# Changelog
+    \\
+    \\All notable changes to this project will be documented in this file.
+    \\
+    \\The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+    \\and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+    \\
+    \\## [Unreleased]
+    \\
+    \\### Added
+    \\- Initial project setup
+    \\
+    \\### Changed
+    \\
+    \\### Deprecated
+    \\
+    \\### Removed
+    \\
+    \\### Fixed
+    \\
+    \\### Security
+    \\
+    \\## [0.0.1] - {date}
+    \\
+    \\### Added
+    \\- Initial release
+    \\
+;
+
 pub fn initFn(_options: []const cli.option) bool {
     var subcommand: ?[]const u8 = null;
 
@@ -239,6 +269,7 @@ pub fn initFn(_options: []const cli.option) bool {
         std.debug.print("  readme    - Generate a README.md file\n", .{});
         std.debug.print("  license   - Generate a license file (coming soon)\n", .{});
         std.debug.print("  gitignore - Generate a .gitignore file (coming soon)\n", .{});
+        std.debug.print("  changelog - Generate a CHANGELOG.md file\n", .{});
         return false;
     }
 
@@ -267,9 +298,11 @@ pub fn initFn(_options: []const cli.option) bool {
         return initLicenseFn(license_type);
     } else if (std.mem.eql(u8, subcmd, "gitignore")) {
         return initGitignoreFn(_options);
+    } else if (std.mem.eql(u8, subcmd, "changelog")) {
+        return initChangelogFn(_options);
     } else {
         std.debug.print("Error: Unknown subcommand '{s}'\n", .{subcmd});
-        std.debug.print("Available subcommands: readme, license, gitignore\n", .{});
+        std.debug.print("Available subcommands: readme, license, gitignore, changelog\n", .{});
         return false;
     }
 }
@@ -565,6 +598,61 @@ pub fn initGitignoreFn(_options: []const cli.option) bool {
 
     std.debug.print("Created .gitignore for {s} projects\n", .{type_name});
     std.debug.print("You can customize it further based on your project needs!\n", .{});
+
+    return true;
+}
+
+pub fn initChangelogFn(_: []const cli.option) bool {
+    if (fs.cwd().access("CHANGELOG.md", .{})) |_| {
+        std.debug.print("CHANGELOG.md already exists. Overwrite? (y/N): ", .{});
+
+        const stdin = std.io.getStdIn().reader();
+        var buf: [10]u8 = undefined;
+        if (stdin.readUntilDelimiterOrEof(&buf, '\n') catch null) |input| {
+            if (input.len == 0 or (input[0] != 'y' and input[0] != 'Y')) {
+                std.debug.print("Aborted.\n", .{});
+                return true;
+            }
+        }
+    }else |_| {}
+
+    const timestamp = std.time.timestamp();
+    const epoch_seconds = @as(u64, @intCast(timestamp));
+    const days_since_epoch = @divFloor(epoch_seconds, 86400);
+    const year = 1970 + @divFloor(days_since_epoch, 365);
+    const day_of_year = days_since_epoch % 365;
+    const month = @min(12, 1 + @divFloor(day_of_year, 30));
+    const day = @min(31, 1 + (day_of_year % 30));
+
+    const file = fs.cwd().createFile("CHANGELOG.md", .{}) catch |err| {
+        std.debug.print("Error creating CHANGELOG.md: {}", .{err});
+        return false;
+    };
+    defer file.close();
+
+    const writer = file.writer();
+    var it = std.mem.tokenizeAny(u8, changelog_template, "\n");
+    while (it.next()) |line| {
+        if (std.mem.indexOf(u8, line, "{date}")) |_| {
+            var modified_line = std.ArrayList(u8).init(std.heap.page_allocator);
+            defer modified_line.deinit();
+
+            var start: usize = 0;
+            while (std.mem.indexOf(u8, line[start..], "{date}")) |pos| {
+                const abs_pos = start + pos;
+                modified_line.appendSlice(line[start..abs_pos]) catch return false;
+                modified_line.writer().print("{d}-{d:0>2}-{d:0>2}", .{year, month, day}) catch return false;
+                start = abs_pos + "{date}".len;
+            }
+            modified_line.appendSlice(line[start..]) catch return false;
+            writer.print("{s}\n", .{modified_line.items}) catch return false;
+        } else {
+            writer.print("{s}\n", .{line}) catch return false;
+        }
+    }
+
+    std.debug.print("Created CHANGELOG.md correctly.", .{});
+    std.debug.print("Update with the changes you need.", .{});
 
     return true;
 }
