@@ -285,6 +285,65 @@ const env_template =
     \\
 ;
 
+const contributing_template =
+    \\# Contributing
+    \\
+    \\Thank you for considering contributing to {project_name}! We welcome contributions from everyone.
+    \\
+    \\## Getting Started
+    \\
+    \\1. Fork the repository
+    \\2. Clone your fork: `git clone https://github.com/yourusername/{project_name}.git`
+    \\3. Create a new branch: `git checkout -b feature-name`
+    \\4. Make your changes
+    \\5. Test your changes
+    \\6. Commit your changes: `git commit -m "Add feature"`
+    \\7. Push to your fork: `git push origin feature-name`
+    \\8. Create a Pull Request
+    \\
+    \\## Development Setup
+    \\
+    \\```bash
+    \\# Install dependencies
+    \\# Add setup instructions here
+    \\
+    \\# Run tests
+    \\# Add test commands here
+    \\
+    \\# Build project
+    \\# Add build commands here
+    \\```
+    \\
+    \\## Coding Standards
+    \\
+    \\- Follow existing code style
+    \\- Write clear commit messages
+    \\- Add tests for new features
+    \\- Update documentation as needed
+    \\
+    \\## Pull Request Guidelines
+    \\
+    \\- Keep changes focused and atomic
+    \\- Write descriptive PR titles and descriptions
+    \\- Reference related issues
+    \\- Ensure all tests pass
+    \\- Update CHANGELOG.md if applicable
+    \\
+    \\## Reporting Issues
+    \\
+    \\When reporting issues, please include:
+    \\
+    \\- Clear description of the problem
+    \\- Steps to reproduce
+    \\- Expected vs actual behavior
+    \\- Environment details (OS, version, etc.)
+    \\
+    \\## Questions?
+    \\
+    \\Feel free to open an issue for any questions about contributing.
+    \\
+;
+
 pub fn initFn(_options: []const cli.option) bool {
     var subcommand: ?[]const u8 = null;
 
@@ -304,6 +363,7 @@ pub fn initFn(_options: []const cli.option) bool {
         std.debug.print("  gitignore - Generate a .gitignore file (coming soon)\n", .{});
         std.debug.print("  changelog - Generate a CHANGELOG.md file\n", .{});
         std.debug.print("  env - Generate a .env.example file\n", .{});
+        std.debug.print("  contributing - Generate a CONTRIBUTING.md file\n", .{});
         return false;
     }
 
@@ -336,9 +396,11 @@ pub fn initFn(_options: []const cli.option) bool {
         return initChangelogFn(_options);
     } else if (std.mem.eql(u8, subcmd, "env")) {
         return initEnvFn(_options);
+    } else if (std.mem.eql(u8, subcmd, "contributing")) {
+        return initContributingFn(_options);
     } else {
         std.debug.print("Error: Unknown subcommand '{s}'\n", .{subcmd});
-        std.debug.print("Available subcommands: readme, license, gitignore, changelog, env\n", .{});
+        std.debug.print("Available subcommands: readme, license, gitignore, changelog, env, contributing\n", .{});
         return false;
     }
 }
@@ -719,6 +781,62 @@ pub fn initEnvFn(_: []const cli.option) bool {
     };
 
     std.debug.print("Created .env.example with generic environment variables", .{});
+
+    return true;
+}
+
+pub fn initContributingFn(_: []const cli.option) bool {
+    if (fs.cwd().access("CONTRIBUTING.md", .{})) |_| {
+        std.debug.print("CONTRIBUTING.md already exists. Overwrite? (y/N): ", .{});
+
+        const stdin = std.io.getStdIn().reader();
+        var buf: [10]u8 = undefined;
+        if (stdin.readUntilDelimiterOrEof(&buf, '\n') catch null) |input| {
+            if (input.len == 0 or (input[0] != 'y' and input [0] != 'Y')) {
+                std.debug.print("Aborted.\n", .{});
+                return true;
+            }
+        }
+    }else |_| {}
+
+    const cwd_path = fs.cwd().realpathAlloc(std.heap.page_allocator, ".") catch {
+        std.debug.print("Error: Could not get current directory\n", .{});
+        return false;
+    };
+    defer std.heap.page_allocator.free(cwd_path);
+
+    const project_name = fs.path.basename(cwd_path);
+
+    const file = fs.cwd().createFile("CONTRIBUTING.md", .{}) catch |err| {
+        std.debug.print("Error creating CONTRIBUTING.md: {}\n", .{err});
+        return false;
+    };
+    defer file.close();
+
+    const writer = file.writer();
+    var it = std.mem.tokenizeAny(u8, contributing_template, "\n");
+    while (it.next()) |line| {
+        if (std.mem.indexOf(u8, line, "{project_name}")) |_| {
+            var modified_line = std.ArrayList(u8).init(std.heap.page_allocator);
+            defer modified_line.deinit();
+
+            var start: usize = 0;
+
+            while (std.mem.indexOf(u8, line[start..], "{project_name}")) |pos| {
+                const abs_pos = start + pos;
+                modified_line.appendSlice(line[start..abs_pos]) catch return false;
+                modified_line.appendSlice(project_name) catch return false;
+                start = abs_pos + "{project_name}".len;
+            }
+            modified_line.appendSlice(line[start..]) catch return false;
+
+            writer.print("{s}\n", .{modified_line.items}) catch return false;
+        } else {
+            writer.print("{s}\n", .{line}) catch return false;
+        }
+    }
+
+    std.debug.print("Created CONTRIBUTING.md file for project: {s}.\n", .{project_name});
 
     return true;
 }
