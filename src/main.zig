@@ -3,16 +3,12 @@ const cli = @import("cli.zig");
 const cmd = @import("commands.zig");
 
 pub fn main() !void {
-    const commands = [_]cli.command {
+    const base_commands = [_]cli.command {
         cli.command {
             .name = "hello",
             .func = &cmd.methods.commands.helloFn,
             .req = &.{"greeting"},
             .opt = &.{"name"},
-        },
-        cli.command {
-            .name = "help",
-            .func = &cmd.methods.commands.helpFn,
         },
 
         // FILE OPERATION
@@ -87,6 +83,14 @@ pub fn main() !void {
             .func = &cmd.methods.options.textFn,
         },
     };
+
+    var commands: [base_commands.len + 1]cli.command = undefined;
+
+    for (base_commands, 0..) |bc, i| {
+        commands[i] = bc;
+    }
+
+    commands[base_commands.len] = cli.createHelpCommand(&commands, &options);
 
     try cli.start(&commands, &options, true);
 }

@@ -22,11 +22,6 @@ pub const methods = struct {
             return true;
         }
 
-        pub fn helpFn(_: []const cli.option) bool {
-            generateHelpCommand();
-            return true;
-        }
-
         pub fn separateCreateFileFn(name: []const u8) !void{
             const file = try fs.cwd().createFile(
                 name,

@@ -36,6 +36,57 @@ pub const Error = error {
     TooManyOptions,
 };
 
+pub fn generateHelp(commands: []const command, options: []const option) void {
+    std.debug.print("Usage: <command> [options]\n\nCommands:\n", .{});
+
+    for (commands) |cmd| {
+        std.debug.print(" {s<:15} ", .{cmd.name});
+        if (cmd.req.len > 0) {
+            std.debug.print("Required: ", .{});
+            for (cmd.req, 0..) |req, i| {
+                if (i > 0) std.debug.print(", ", .{});
+                std.debug.print("--{s}", .{req});
+            }
+        }
+
+        if (cmd.opt.len > 0) {
+            if (cmd.req.len > 0) std.debug.print(" | ", .{});
+            std.debug.print("Optional: ", .{});
+            for (cmd.opt, 0..) |opt, i| {
+                if (i > 0) std.debug.print(", ", .{});
+                std.debug.print("--{s}", .{opt});
+            }
+        }
+
+        std.debug.print("\n", .{});
+    }
+
+    std.debug.print("\nOptions:\n", .{});
+    for (options) |opt| {
+        std.debug.print("   -{c}, --{s:<12} {s}\n", .{opt.short, opt.long, opt.name});
+    }
+}
+
+pub fn createHelpCommand(commands: []const command, options: []const option) command {
+    const HelpContext = struct {
+        var cmds: []const command = undefined;
+        var opts: []const option = undefined;
+
+        pub fn helpFn(_: []const option) bool {
+            generateHelp(cmds, opts);
+            return true;
+        }
+    };
+
+    HelpContext.cmds = commands;
+    HelpContext.opts = options;
+
+    return command {
+        .name = "help",
+        .func = &HelpContext.helpFn,
+    };
+}
+
 pub fn start(commands: []const command, options: []const option, debug: bool) !void{
     if (commands.len > MAX_COMMANDS) {
         return Error.TooManyCommands;
@@ -159,10 +210,6 @@ pub fn startWithArgs(commands: []const command, options: []const option, args: a
     }
 
     if (debug) std.debug.print("Command executed succesfully: {s}\n", .{cmd.name});
-}
-
-pub generateHelp(commands: []const command, options: []const option) void {
-    
 }
 
 pub const Color = enum {
