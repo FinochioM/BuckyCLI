@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub const MAX_COMMANDS: u8 = 10;
+pub const MAX_COMMANDS: u8 = 20;
 pub const MAX_OPTIONS: u8 = 20;
 
 const Byte = u8;
