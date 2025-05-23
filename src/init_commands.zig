@@ -35,6 +35,64 @@ const readme_template =
     \\
 ;
 
+const mit_license_template =
+    \\MIT License
+    \\
+    \\Copyright (c) {year} {author}
+    \\
+    \\Permission is hereby granted, free of charge, to any person obtaining a copy
+    \\of this software and associated documentation files (the "Software"), to deal
+    \\in the Software without restriction, including without limitation the rights
+    \\to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    \\copies of the Software, and to permit persons to whom the Software is
+    \\furnished to do so, subject to the following conditions:
+    \\
+    \\The above copyright notice and this permission notice shall be included in all
+    \\copies or substantial portions of the Software.
+    \\
+    \\THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    \\IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    \\FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    \\AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    \\LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    \\OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    \\SOFTWARE.
+;
+
+const apache2_license_template =
+    \\Copyright {year} {author}
+    \\
+    \\Licensed under the Apache License, Version 2.0 (the "License");
+    \\you may not use this file except in compliance with the License.
+    \\You may obtain a copy of the License at
+    \\
+    \\    http://www.apache.org/licenses/LICENSE-2.0
+    \\
+    \\Unless required by applicable law or agreed to in writing, software
+    \\distributed under the License is distributed on an "AS IS" BASIS,
+    \\WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    \\See the License for the specific language governing permissions and
+    \\limitations under the License.
+;
+
+const gpl3_license_header =
+    \\{project_name}
+    \\Copyright (C) {year} {author}
+    \\
+    \\This program is free software: you can redistribute it and/or modify
+    \\it under the terms of the GNU General Public License as published by
+    \\the Free Software Foundation, either version 3 of the License, or
+    \\(at your option) any later version.
+    \\
+    \\This program is distributed in the hope that it will be useful,
+    \\but WITHOUT ANY WARRANTY; without even the implied warranty of
+    \\MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    \\GNU General Public License for more details.
+    \\
+    \\You should have received a copy of the GNU General Public License
+    \\along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;
+
 pub fn initFn(_options: []const cli.option) bool {
     var subcommand: ?[]const u8 = null;
 
@@ -60,7 +118,24 @@ pub fn initFn(_options: []const cli.option) bool {
     if (std.mem.eql(u8, subcmd, "readme")) {
         return initReadmeFn(_options);
     } else if (std.mem.eql(u8, subcmd, "license")) {
-        return initLicenseFn(_options);
+        var license_type: ?[]const u8 = null;
+        for (_options) |opt| {
+            if (std.mem.eql(u8, opt.name, "type")) {
+                license_type = opt.value;
+                break;
+            }
+        }
+
+        if (license_type == null and _options.len > 1) {
+            for (_options) |opt| {
+                if (std.mem.eql(u8, opt.name, "subcommand") and !std.mem.eql(u8, opt.value, "license")) {
+                    license_type = opt.value;
+                    break;
+                }
+            }
+        }
+
+        return initLicenseFn(license_type);
     } else if (std.mem.eql(u8, subcmd, "gitignore")) {
         return initGitignoreFn(_options);
     } else {
@@ -71,6 +146,10 @@ pub fn initFn(_options: []const cli.option) bool {
 }
 
 pub fn subcommandFn(_: []const u8) bool {
+    return true;
+}
+
+pub fn typeFn(_: []const u8) bool {
     return true;
 }
 
@@ -133,8 +212,145 @@ pub fn initReadmeFn(_: []const cli.option) bool {
     return true;
 }
 
-pub fn initLicenseFn(_: []const cli.option) bool {
-    std.debug.print("License initialization coming soon!\n", .{});
+pub fn initLicenseFn(license_type: ?[]const u8) bool {
+    if (license_type == null) {
+        std.debug.print("Error: No license type specified\n", .{});
+        std.debug.print("Usage: maki init license <type>\n", .{});
+        std.debug.print("Available license types:\n", .{});
+        std.debug.print("  MIT       - MIT License\n", .{});
+        std.debug.print("  Apache-2.0 - Apache License 2.0\n", .{});
+        std.debug.print("  GPL-3.0   - GNU General Public License v3.0\n", .{});
+        return false;
+    }
+
+    const license = license_type.?;
+
+    var normalized_license: []const u8 = undefined;
+    var filename: []const u8 = undefined;
+    var template: []const u8 = undefined;
+
+    if (std.ascii.eqlIgnoreCase(license, "MIT")) {
+        normalized_license = "MIT";
+        filename = "LICENSE";
+        template = mit_license_template;
+    } else if (std.ascii.eqlIgnoreCase(license, "Apache-2.0") or
+               std.ascii.eqlIgnoreCase(license, "Apache2") or
+               std.ascii.eqlIgnoreCase(license, "Apache")) {
+        normalized_license = "Apache-2.0";
+        filename = "LICENSE";
+        template = apache2_license_template;
+    } else if (std.ascii.eqlIgnoreCase(license, "GPL-3.0") or
+               std.ascii.eqlIgnoreCase(license, "GPL3") or
+               std.ascii.eqlIgnoreCase(license, "GPL")) {
+        normalized_license = "GPL-3.0";
+        filename = "LICENSE";
+        template = gpl3_license_header;
+    } else {
+        std.debug.print("Error: Unknown license type '{s}'\n", .{license});
+        std.debug.print("Available license types: MIT, Apache-2.0, GPL-3.0\n", .{});
+        return false;
+    }
+
+    if (fs.cwd().access(filename, .{})) |_| {
+        std.debug.print("{s} already exists. Overwrite? (y/N): ", .{filename});
+
+        const stdin = std.io.getStdIn().reader();
+        var buf: [10]u8 = undefined;
+        if (stdin.readUntilDelimiterOrEof(&buf, '\n') catch null) |input| {
+            if (input.len == 0 or (input[0] != 'y' and input[0] != 'Y')) {
+                std.debug.print("Aborted.\n", .{});
+                return true;
+            }
+        }
+    } else |_| {}
+
+    const timestamp = std.time.timestamp();
+    const epoch_seconds = @as(u64, @intCast(timestamp));
+    const year = 1970 + @divFloor(epoch_seconds, 31536000); // approx
+
+    const author = "[Your Name]";
+
+    const cwd_path = fs.cwd().realpathAlloc(std.heap.page_allocator, ".") catch {
+        std.debug.print("Error: Could not get current directory\n", .{});
+        return false;
+    };
+    defer std.heap.page_allocator.free(cwd_path);
+    const project_name = fs.path.basename(cwd_path);
+
+    const file = fs.cwd().createFile(filename, .{}) catch |err| {
+        std.debug.print("Error creating {s}: {}\n", .{filename, err});
+        return false;
+    };
+    defer file.close();
+
+    const writer = file.writer();
+    var it = std.mem.tokenizeAny(u8, template, "\n");
+    while (it.next()) |line| {
+        var modified_line = std.ArrayList(u8).init(std.heap.page_allocator);
+        defer modified_line.deinit();
+
+        var start: usize = 0;
+        var modified = false;
+
+        while (std.mem.indexOf(u8, line[start..], "{year}")) |pos| {
+            const abs_pos = start + pos;
+            modified_line.appendSlice(line[start..abs_pos]) catch return false;
+            modified_line.writer().print("{d}", .{year}) catch return false;
+            start = abs_pos + "{year}".len;
+            modified = true;
+        }
+
+        start = if (modified) 0 else start;
+        if (modified) {
+            const temp = modified_line.toOwnedSlice() catch return false;
+            defer std.heap.page_allocator.free(temp);
+            modified_line = std.ArrayList(u8).init(std.heap.page_allocator);
+
+            start = 0;
+            while (std.mem.indexOf(u8, temp[start..], "{author}")) |pos| {
+                const abs_pos = start + pos;
+                modified_line.appendSlice(temp[start..abs_pos]) catch return false;
+                modified_line.appendSlice(author) catch return false;
+                start = abs_pos + "{author}".len;
+            }
+            modified_line.appendSlice(temp[start..]) catch return false;
+        } else {
+            while (std.mem.indexOf(u8, line[start..], "{author}")) |pos| {
+                const abs_pos = start + pos;
+                modified_line.appendSlice(line[start..abs_pos]) catch return false;
+                modified_line.appendSlice(author) catch return false;
+                start = abs_pos + "{author}".len;
+                modified = true;
+            }
+        }
+
+        if (std.mem.indexOf(u8, line, "{project_name}") != null) {
+            const temp = if (modified) modified_line.toOwnedSlice() catch return false else line;
+            defer if (modified) std.heap.page_allocator.free(temp);
+            modified_line = std.ArrayList(u8).init(std.heap.page_allocator);
+
+            start = 0;
+            while (std.mem.indexOf(u8, temp[start..], "{project_name}")) |pos| {
+                const abs_pos = start + pos;
+                modified_line.appendSlice(temp[start..abs_pos]) catch return false;
+                modified_line.appendSlice(project_name) catch return false;
+                start = abs_pos + "{project_name}".len;
+            }
+            modified_line.appendSlice(temp[start..]) catch return false;
+            modified = true;
+        }
+
+        if (modified) {
+            writer.print("{s}\n", .{modified_line.items}) catch return false;
+        } else {
+            modified_line.appendSlice(line[start..]) catch return false;
+            writer.print("{s}\n", .{modified_line.items}) catch return false;
+        }
+    }
+
+    std.debug.print("Created {s} with {s} license\n", .{filename, normalized_license});
+    std.debug.print("Remember to update the author name in the license file!\n", .{});
+
     return true;
 }
 

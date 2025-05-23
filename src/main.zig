@@ -96,7 +96,13 @@ pub fn main() !void {
             .short = 0,
             .long = "subcommand",
             .func = &init_cmd.subcommandFn,
-        }
+        },
+        cli.option {
+            .name = "type",
+            .short = 0,
+            .long = "type",
+            .func = &init_cmd.typeFn,
+        },
     };
 
     var commands: [base_commands.len + 1]cli.command = undefined;

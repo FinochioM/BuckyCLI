@@ -151,6 +151,20 @@ pub fn startWithArgs(commands: []const command, options: []const option, args: a
                     break;
                 }
             }
+
+            if (std.mem.eql(u8, cmd.name, "init") and i < args.len and !std.mem.startsWith(u8, args[i], "-")) {
+                var type_opt: option = undefined;
+                for (options) |opt| {
+                    if (std.mem.eql(u8, opt.name, "type")) {
+                        type_opt = opt;
+                        type_opt.value = args[i];
+                        detected_options[detected_len] = type_opt;
+                        detected_len += 1;
+                        i += 1;
+                        break;
+                    }
+                }
+            }
         }
     }
 
