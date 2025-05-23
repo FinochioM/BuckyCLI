@@ -2,9 +2,7 @@
 + Adding Color to the Syntax.
 
 + INIT commands.
-# init env
 # init contributing
-
 
 # REMOVE LATER.
 - create a file but with a specified path too, not only the name.
@@ -18,3 +16,4 @@
 - init license files for MIT, Apache, GPL3.
 - init gitignore file for some languages.
 - init changelog file.
+- init env.

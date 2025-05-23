@@ -252,6 +252,39 @@ const changelog_template =
     \\
 ;
 
+const env_template =
+    \\# Environment Configuration
+    \\# Copy this file to .env and update the values
+    \\
+    \\# Application
+    \\NODE_ENV=development
+    \\PORT=3000
+    \\HOST=localhost
+    \\
+    \\# Database
+    \\DATABASE_URL=postgresql://localhost:5432/myapp
+    \\DB_HOST=localhost
+    \\DB_PORT=5432
+    \\DB_NAME=myapp
+    \\DB_USER=myapp_user
+    \\DB_PASSWORD=your_password_here
+    \\
+    \\# API Keys
+    \\API_KEY=your_api_key_here
+    \\SECRET_KEY=your_secret_key_here
+    \\JWT_SECRET=your_jwt_secret_here
+    \\
+    \\# External Services
+    \\REDIS_URL=redis://localhost:6379
+    \\EMAIL_SERVICE_API_KEY=your_email_api_key
+    \\STORAGE_BUCKET=your_storage_bucket
+    \\
+    \\# Logging
+    \\LOG_LEVEL=info
+    \\DEBUG=false
+    \\
+;
+
 pub fn initFn(_options: []const cli.option) bool {
     var subcommand: ?[]const u8 = null;
 
@@ -270,6 +303,7 @@ pub fn initFn(_options: []const cli.option) bool {
         std.debug.print("  license   - Generate a license file (coming soon)\n", .{});
         std.debug.print("  gitignore - Generate a .gitignore file (coming soon)\n", .{});
         std.debug.print("  changelog - Generate a CHANGELOG.md file\n", .{});
+        std.debug.print("  env - Generate a .env.example file\n", .{});
         return false;
     }
 
@@ -300,9 +334,11 @@ pub fn initFn(_options: []const cli.option) bool {
         return initGitignoreFn(_options);
     } else if (std.mem.eql(u8, subcmd, "changelog")) {
         return initChangelogFn(_options);
+    } else if (std.mem.eql(u8, subcmd, "env")) {
+        return initEnvFn(_options);
     } else {
         std.debug.print("Error: Unknown subcommand '{s}'\n", .{subcmd});
-        std.debug.print("Available subcommands: readme, license, gitignore, changelog\n", .{});
+        std.debug.print("Available subcommands: readme, license, gitignore, changelog, env\n", .{});
         return false;
     }
 }
@@ -653,6 +689,36 @@ pub fn initChangelogFn(_: []const cli.option) bool {
 
     std.debug.print("Created CHANGELOG.md correctly.", .{});
     std.debug.print("Update with the changes you need.", .{});
+
+    return true;
+}
+
+pub fn initEnvFn(_: []const cli.option) bool {
+    if (fs.cwd().access(".env.example", .{})) |_| {
+        std.debug.print(".env.example already exists. Overwrite? (y/N): ", .{});
+
+        const stdin = std.io.getStdIn().reader();
+        var buf: [10]u8 = undefined;
+        if (stdin.readUntilDelimiterOrEof(&buf, '\n') catch null) |input| {
+            if (input.len == 0 or (input[0] != 'y' and input [0] != 'Y')) {
+                std.debug.print("Aborted.\n", .{});
+                return true;
+            }
+        }
+    }else |_| {}
+
+    const file = fs.cwd().createFile(".env.example", .{}) catch |err| {
+        std.debug.print("Error creating .env.example: {}\n", .{err});
+        return false;
+    };
+    defer file.close();
+
+    file.writeAll(env_template) catch |err| {
+        std.debug.print("Error writing .env.example: {}\n", .{err});
+        return false;
+    };
+
+    std.debug.print("Created .env.example with generic environment variables", .{});
 
     return true;
 }
