@@ -1,8 +1,8 @@
 ## Releases:
-- Current Release: [v1.0.0]
+- Current Release: [v0.1.0]
 
 ## Changelog:
-- **v1.0.0**: Initial release with basic functionality.
+- **v0.1.0**: Initial release with basic functionality.
 
 ## Commands:
 - `--generate`: Generates a new S2D project template.
