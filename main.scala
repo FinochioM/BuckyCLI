@@ -17,19 +17,18 @@ def main(args: String*): Unit =
       showHelp()
 
 def showAsciiArt(): Unit =
-  // TODO: Replace this with your actual S2D ASCII art string
   val asciiArt = """
   ╔═══════════════════════════════════════╗
   ║                                       ║
-  ║    ███████╗██████╗ ██████╗            ║
-  ║    ██╔════╝╚════██╗██╔══██╗           ║
-  ║    ███████╗ █████╔╝██║  ██║           ║
-  ║    ╚════██║██╔═══╝ ██║  ██║           ║
-  ║    ███████║███████╗██████╔╝           ║
-  ║    ╚══════╝╚══════╝╚═════╝            ║
+  ║       ███████╗██████╗ ██████╗         ║
+  ║       ██╔════╝╚════██╗██╔══██╗        ║
+  ║       ███████╗ █████╔╝██║  ██║        ║
+  ║       ╚════██║██╔═══╝ ██║  ██║        ║
+  ║       ███████║███████╗██████╔╝        ║
+  ║       ╚══════╝╚══════╝╚═════╝         ║
   ║                                       ║
   ║         Scala 2D Native Library       ║
-  ║            Template Generator         ║
+  ║               CLI Tool                ║
   ║                                       ║
   ╚═══════════════════════════════════════╝
   """
@@ -116,14 +115,14 @@ def cloneLibraries(projectPath: os.Path): Unit =
     .setDirectory(librariesPath.toIO)
     .call()
     .close()
- 
+
 def createBuildFile(projectPath: os.Path, buildSystem: String): Unit =
   buildSystem match
     case "sbt" =>
       val buildSbtContent = createSbtBuildContent()
       os.write(projectPath / "build.sbt", buildSbtContent)
     case _ =>
-      val projectScalaContent = createScalaCliBuildContent()
+      val projectScalaContent = createScalaCliBuildContent(projectPath)
       os.write(projectPath / "project.scala", projectScalaContent)
 
 def createSbtBuildContent(): String =
@@ -157,21 +156,23 @@ lazy val root = (project in file("."))
   )
   .enablePlugins(ScalaNativePlugin)"""
 
-def createScalaCliBuildContent(): String =
-  """//> using scala 3.3.6
+def createScalaCliBuildContent(projectPath: os.Path): String =
+  val absoluteProjectPath = projectPath.toString.replace("\\", "\\\\")
+  s"""//> using scala 3.3.6
 //> using platform native
 
-//> using nativeCompile "-Ilibraries/SDL2/include"
-//> using nativeCompile "-Ilibraries/glew/include"
-//> using nativeCompile "-Ilibraries/STB/include"
+//> using nativeCompile "-I${absoluteProjectPath}\\\\libraries\\\\SDL2\\\\include"
+//> using nativeCompile "-I${absoluteProjectPath}\\\\libraries\\\\STB\\\\include"
+//> using nativeCompile "-I${absoluteProjectPath}\\\\libraries\\\\glew\\\\include"
 
-//> using nativeLinking "-Llibraries/SDL2/lib"
-//> using nativeLinking "-Llibraries/glew/lib/Release/x64"
-//> using nativeLinking "-Llibraries/STB/lib"
+//> using nativeLinking "-L${absoluteProjectPath}\\\\libraries\\\\SDL2\\\\lib"
+//> using nativeLinking "-L${absoluteProjectPath}\\\\libraries\\\\STB"
+//> using nativeLinking "-L${absoluteProjectPath}\\\\libraries\\\\glew\\\\lib\\\\Release\\\\x64"
 //> using nativeLinking "-lSDL2"
-//> using nativeLinking "-lSDL2main"
+//> using nativeLinking "-lstb_image"
 //> using nativeLinking "-lglew32"
 //> using nativeLinking "-lopengl32"
+//> using nativeLinking "-lglu32"
 """
 
 def createMainTemplate(projectPath: os.Path): Unit =
@@ -188,13 +189,21 @@ object Main {
   os.write(projectPath / "main.scala", mainScalaContent)
 
 def copyRequiredDlls(projectPath: os.Path): Unit =
-  val sdl2Dll = projectPath / "libraries" / "SDL2" / "dll" / "SDL2.dll"
-  val glewDll = projectPath / "libraries" / "glew" / "dll" / "glew32.dll"
+  val sdl2Dll = projectPath / "libraries" / "SDL2" / "bin" / "SDL2.dll"
+  val glewDll = projectPath / "libraries" / "glew" / "bin" / "Release" / "x64" / "glew32.dll"
+
+  println("Copying required DLLs...")
 
   if (os.exists(sdl2Dll)) {
     os.copy(sdl2Dll, projectPath / "SDL2.dll")
+    println("SDL2.dll copied successfully")
+  } else {
+    println(s"Warning: SDL2.dll not found at ${sdl2Dll}")
   }
 
   if (os.exists(glewDll)) {
     os.copy(glewDll, projectPath / "glew32.dll")
+    println("glew32.dll copied successfully")
+  } else {
+    println(s"Warning: glew32.dll not found at ${glewDll}")
   }
