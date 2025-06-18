@@ -88,6 +88,10 @@ def createProjectStructure(projectName: String, projectPath: String, buildSystem
     createMainTemplate(fullProjectPath)
     copyRequiredDlls(fullProjectPath)
 
+    // Create assets directory for resources
+    println("Creating assets directory...")
+    os.makeDir.all(fullProjectPath / "assets")
+
     println()
     println(s"Project '$projectName' created successfully!")
     println(s"Location: ${fullProjectPath.toString}")
@@ -119,11 +123,29 @@ def cloneLibraries(projectPath: os.Path): Unit =
 def createBuildFile(projectPath: os.Path, buildSystem: String): Unit =
   buildSystem match
     case "sbt" =>
+      // Create project directory for SBT
+      val projectDir = projectPath / "project"
+      os.makeDir.all(projectDir)
+
+      // Create plugins.sbt
+      val pluginsSbtContent = """addSbtPlugin("org.scala-native" % "sbt-scala-native" % "0.5.8")"""
+      os.write(projectDir / "plugins.sbt", pluginsSbtContent)
+
+      // Create build.properties
+      val buildPropertiesContent = """sbt.version = 1.11.2"""
+      os.write(projectDir / "build.properties", buildPropertiesContent)
+
+      // Create main build.sbt
       val buildSbtContent = createSbtBuildContent()
       os.write(projectPath / "build.sbt", buildSbtContent)
+
+      println("SBT project files created (build.sbt, project/plugins.sbt, project/build.properties)")
+
     case _ =>
       val projectScalaContent = createScalaCliBuildContent(projectPath)
       os.write(projectPath / "project.scala", projectScalaContent)
+
+      println("Scala-CLI project file created (project.scala)")
 
 def createSbtBuildContent(): String =
   """ThisBuild / version := "0.1.0-SNAPSHOT"
@@ -143,7 +165,8 @@ lazy val root = (project in file("."))
         "-lSDL2",
         "-lSDL2main",
         "-lglew32",
-        "-lopengl32"
+        "-lopengl32",
+        "-lglu32"
       ))
     },
     nativeConfig ~= { c =>
@@ -166,9 +189,10 @@ def createScalaCliBuildContent(projectPath: os.Path): String =
 //> using nativeCompile "-I${absoluteProjectPath}\\\\libraries\\\\glew\\\\include"
 
 //> using nativeLinking "-L${absoluteProjectPath}\\\\libraries\\\\SDL2\\\\lib"
-//> using nativeLinking "-L${absoluteProjectPath}\\\\libraries\\\\STB"
+//> using nativeLinking "-L${absoluteProjectPath}\\\\libraries\\\\STB\\\\lib"
 //> using nativeLinking "-L${absoluteProjectPath}\\\\libraries\\\\glew\\\\lib\\\\Release\\\\x64"
 //> using nativeLinking "-lSDL2"
+//> using nativeLinking "-lSDL2main"
 //> using nativeLinking "-lstb_image"
 //> using nativeLinking "-lglew32"
 //> using nativeLinking "-lopengl32"
@@ -182,7 +206,14 @@ import scala.scalanative.unsigned.*
 object Main {
   def main(args: Array[String]): Unit = {
     println("S2D Project Template")
-    println("Window creation code will go here...")
+    println("Starting S2D application...")
+
+    // Initialize SDL2
+    // TODO: Add your SDL2 initialization code here
+    // TODO: Create window using your S2D library
+    // TODO: Main game/application loop
+
+    println("S2D application terminated.")
   }
 }"""
 
