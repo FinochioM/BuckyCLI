@@ -1,3 +1,7 @@
+import os.*
+import org.eclipse.jgit.api.Git
+import java.io.File
+
 @main
 def main(args: String*): Unit =
   args.toList match
@@ -6,73 +10,191 @@ def main(args: String*): Unit =
       generateTemplate()
     case "--help" :: _ =>
       showHelp()
-    case Nil | Nil =>
+    case Nil =>
       showHelp()
     case unknown =>
-      println(s"Unknown argument: ${unknown.mkString(" ")}")
+      println(s"Unknown command: ${unknown.mkString(" ")}")
       showHelp()
 
 def showAsciiArt(): Unit =
-  val asciiArt =
-    """
-      |  ╔═══════════════════════════════════════╗
-      |  ║                                       ║
-      |  ║        ███████╗██████╗ ██████╗        ║
-      |  ║        ██╔════╝╚════██╗██╔══██╗       ║
-      |  ║        ███████╗ █████╔╝██║  ██║       ║
-      |  ║        ╚════██║██╔═══╝ ██║  ██║       ║
-      |  ║        ███████║███████╗██████╔╝       ║
-      |  ║        ╚══════╝╚══════╝╚═════╝        ║
-      |  ║                                       ║
-      |  ║         Scala 2D Native Library       ║
-      |  ║             CLI Application           ║
-      |  ║                                       ║
-      |  ╚═══════════════════════════════════════╝
-      |""".stripMargin
+  // TODO: Replace this with your actual S2D ASCII art string
+  val asciiArt = """
+  ╔═══════════════════════════════════════╗
+  ║                                       ║
+  ║    ███████╗██████╗ ██████╗            ║
+  ║    ██╔════╝╚════██╗██╔══██╗           ║
+  ║    ███████╗ █████╔╝██║  ██║           ║
+  ║    ╚════██║██╔═══╝ ██║  ██║           ║
+  ║    ███████║███████╗██████╔╝           ║
+  ║    ╚══════╝╚══════╝╚═════╝            ║
+  ║                                       ║
+  ║         Scala 2D Native Library       ║
+  ║            Template Generator         ║
+  ║                                       ║
+  ╚═══════════════════════════════════════╝
+  """
   println(asciiArt)
 
 def showHelp(): Unit =
-  println(
-    """
-      |Usage: scala Main.scala [options]
-      |
-      |Options:
-      |  --generate   Generate a new template
-      |  --help       Show this help message
-      |
-      |Examples:
-      |  scala Main.scala --generate
-      |  scala Main.scala --help
-      |""".stripMargin
-  )
+  println("S2D - Scala 2D Native Library Template Generator")
+  println()
+  println("Usage:")
+  println("  s2d --generate    Generate a new S2D project template")
+  println("  s2d --help        Show this help message")
+  println()
 
 def generateTemplate(): Unit =
   println("Starting S2D project template generation...")
   println()
 
-  // Get project information from user
   val projectName = getUserInput("Enter project name", "my-s2d-project")
-  val buildSystem = getBuildSystem
+  val buildSystem = getBuildSystem()
   val projectPath = getUserInput("Enter project path", ".")
 
   println(s"Creating project '$projectName' at '$projectPath'")
   println(s"Using build system: $buildSystem")
+  println()
 
-  // TODO: Implement actual template generation
-  println("⚠Template generation not yet implemented")
+  createProjectStructure(projectName, projectPath, buildSystem)
 
 def getUserInput(prompt: String, defaultValue: String): String =
   print(s"$prompt [$defaultValue]: ")
   val input = scala.io.StdIn.readLine()
   if input.trim.isEmpty then defaultValue else input.trim
 
-def getBuildSystem: String =
+def getBuildSystem(): String =
   println("Choose build system:")
-  println("1. scala-cli (recommended)")
-  println("2. sbt")
+  println("  1. scala-cli (recommended)")
+  println("  2. sbt")
   print("Enter choice [1]: ")
 
   val choice = scala.io.StdIn.readLine()
   choice.trim match
     case "2" => "sbt"
     case _ => "scala-cli"
+
+def createProjectStructure(projectName: String, projectPath: String, buildSystem: String): Unit =
+  try
+    val basePath = os.Path(projectPath)
+    val fullProjectPath = basePath / projectName
+
+    println("Creating project directory...")
+    os.makeDir.all(fullProjectPath)
+
+    println("Downloading S2D libraries...")
+    cloneLibraries(fullProjectPath)
+
+    println("Setting up project files...")
+    createBuildFile(fullProjectPath, buildSystem)
+    createMainTemplate(fullProjectPath)
+    copyRequiredDlls(fullProjectPath)
+
+    println()
+    println(s"Project '$projectName' created successfully!")
+    println(s"Location: ${fullProjectPath.toString}")
+    println()
+    println("To build and run your project:")
+    buildSystem match
+      case "sbt" =>
+        println(s"  cd $projectName")
+        println("  sbt run")
+      case _ =>
+        println(s"  cd $projectName")
+        println("  scala-cli run .")
+
+  catch
+    case e: Exception =>
+      println(s"Error creating project: ${e.getMessage}")
+      e.printStackTrace()
+
+def cloneLibraries(projectPath: os.Path): Unit =
+  val librariesUrl = "https://github.com/FinochioM/S2D_Libraries.git"
+  val librariesPath = projectPath / "libraries"
+
+  Git.cloneRepository()
+    .setURI(librariesUrl)
+    .setDirectory(librariesPath.toIO)
+    .call()
+    .close()
+ 
+def createBuildFile(projectPath: os.Path, buildSystem: String): Unit =
+  buildSystem match
+    case "sbt" =>
+      val buildSbtContent = createSbtBuildContent()
+      os.write(projectPath / "build.sbt", buildSbtContent)
+    case _ =>
+      val projectScalaContent = createScalaCliBuildContent()
+      os.write(projectPath / "project.scala", projectScalaContent)
+
+def createSbtBuildContent(): String =
+  """ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / scalaVersion := "3.3.6"
+
+lazy val root = (project in file("."))
+  .settings(
+    name := "s2d-project",
+    libraryDependencies ++= Seq(
+      "org.scala-lang" %% "scala3-library" % scalaVersion.value
+    ),
+    nativeConfig ~= { c =>
+      c.withLinkingOptions(c.linkingOptions ++ Seq(
+        "-Llibraries/SDL2/lib",
+        "-Llibraries/glew/lib/Release/x64",
+        "-Llibraries/STB/lib",
+        "-lSDL2",
+        "-lSDL2main",
+        "-lglew32",
+        "-lopengl32"
+      ))
+    },
+    nativeConfig ~= { c =>
+      c.withCompileOptions(c.compileOptions ++ Seq(
+        "-Ilibraries/SDL2/include",
+        "-Ilibraries/glew/include",
+        "-Ilibraries/STB/include"
+      ))
+    }
+  )
+  .enablePlugins(ScalaNativePlugin)"""
+
+def createScalaCliBuildContent(): String =
+  """//> using scala 3.3.6
+//> using platform native
+
+//> using nativeCompile "-Ilibraries/SDL2/include"
+//> using nativeCompile "-Ilibraries/glew/include"
+//> using nativeCompile "-Ilibraries/STB/include"
+
+//> using nativeLinking "-Llibraries/SDL2/lib"
+//> using nativeLinking "-Llibraries/glew/lib/Release/x64"
+//> using nativeLinking "-Llibraries/STB/lib"
+//> using nativeLinking "-lSDL2"
+//> using nativeLinking "-lSDL2main"
+//> using nativeLinking "-lglew32"
+//> using nativeLinking "-lopengl32"
+"""
+
+def createMainTemplate(projectPath: os.Path): Unit =
+  val mainScalaContent = """import scala.scalanative.unsafe.*
+import scala.scalanative.unsigned.*
+
+object Main {
+  def main(args: Array[String]): Unit = {
+    println("S2D Project Template")
+    println("Window creation code will go here...")
+  }
+}"""
+
+  os.write(projectPath / "main.scala", mainScalaContent)
+
+def copyRequiredDlls(projectPath: os.Path): Unit =
+  val sdl2Dll = projectPath / "libraries" / "SDL2" / "dll" / "SDL2.dll"
+  val glewDll = projectPath / "libraries" / "glew" / "dll" / "glew32.dll"
+
+  if (os.exists(sdl2Dll)) {
+    os.copy(sdl2Dll, projectPath / "SDL2.dll")
+  }
+
+  if (os.exists(glewDll)) {
+    os.copy(glewDll, projectPath / "glew32.dll")
+  }
