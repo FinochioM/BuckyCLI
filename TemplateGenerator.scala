@@ -22,7 +22,7 @@ object TemplateGenerator:
     val buildPropertiesContent = """sbt.version = 1.11.2"""
     os.write(projectDir / "build.properties", buildPropertiesContent)
 
-    val buildSbtContent = createSbtBuildContent()
+    val buildSbtContent = createSbtBuildContent(projectPath)
     os.write(projectPath / "build.sbt", buildSbtContent)
 
     println("SBT project files created (build.sbt, project/plugins.sbt, project/build.properties)")
@@ -32,7 +32,8 @@ object TemplateGenerator:
     os.write(projectPath / "project.scala", projectScalaContent)
     println("Scala-CLI project file created (project.scala)")
 
-  private def createSbtBuildContent(): String =
+  private def createSbtBuildContent(projectPath: os.Path): String =
+    val absoluteProjectPath = projectPath.toString.replace("\\", "\\\\")
     s"""ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.3.6"
 
@@ -44,9 +45,9 @@ lazy val root = (project in file("."))
     ),
     nativeConfig ~= { c =>
       c.withLinkingOptions(c.linkingOptions ++ Seq(
-        "-Llibraries/SDL2/lib",
-        "-Llibraries/glew/lib/Release/x64",
-        "-Llibraries/STB",
+        "-L${absoluteProjectPath}\\\\libraries\\\\SDL2\\\\lib",
+        "-L${absoluteProjectPath}\\\\libraries\\\\glew\\\\lib\\\\Release\\\\x64",
+        "-L${absoluteProjectPath}\\\\libraries\\\\STB",
         "-lSDL2",
         "-lSDL2main",
         "-lglew32",
@@ -56,9 +57,9 @@ lazy val root = (project in file("."))
     },
     nativeConfig ~= { c =>
       c.withCompileOptions(c.compileOptions ++ Seq(
-        "-Ilibraries/SDL2/include",
-        "-Ilibraries/glew/include",
-        "-Ilibraries/STB/include"
+        "-I${absoluteProjectPath}\\\\libraries\\\\SDL2\\\\include",
+        "-I${absoluteProjectPath}\\\\libraries\\\\glew\\\\include",
+        "-I${absoluteProjectPath}\\\\libraries\\\\STB\\\\include"
       ))
     }
   )
