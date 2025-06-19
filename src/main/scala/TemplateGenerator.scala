@@ -1,9 +1,40 @@
 import os.*
+import scala.util.Try
+import java.net.http.{HttpClient, HttpRequest, HttpResponse}
+import java.net.URI
+import upickle.default.*
 
 object TemplateGenerator:
   private val S2D_GROUP_ID = "io.github.finochiom"
   private val S2D_ARTIFACT_ID = "s2d_native0.5_3"
-  private val S2D_VERSION = "1.0.1"
+  private lazy val S2D_VERSION = getLatestVersion()
+
+  private def getLatestVersion(): String =
+    Try {
+      println("Fetching latest version from GitHub tags...")
+      val client = HttpClient.newHttpClient()
+      val url = "https://api.github.com/repos/FinochioM/S2D/tags"
+
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create(url))
+        .build()
+
+      val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+      val json = ujson.read(response.body())
+
+      if (json.arr.nonEmpty) {
+        val latestTag = json.arr(0)("name").str
+        val version = if (latestTag.startsWith("v")) latestTag.drop(1) else latestTag
+        println(s"Found latest tag: $latestTag -> version: $version")
+        version
+      } else {
+        println("NO TAGS FOUND, DEFAULTING TO 0.1.6")
+        "0.1.6"
+      }
+    }.recover { case e =>
+      println(s"ERROR FETCHING VERSION: ${e.getMessage}")
+      "0.1.6"
+    }.getOrElse("0.1.6")
 
   def createBuildFile(projectPath: os.Path, buildSystem: String): Unit =
     buildSystem match
@@ -31,6 +62,7 @@ object TemplateGenerator:
     val projectScalaContent = createScalaCliBuildContent(projectPath)
     os.write(projectPath / "project.scala", projectScalaContent)
     println("Scala-CLI project file created (project.scala)")
+    println("Version: " + S2D_VERSION)
 
   private def createSbtBuildContent(projectPath: os.Path): String =
     val absoluteProjectPath = projectPath.toString.replace("\\", "\\\\")
