@@ -1,7 +1,8 @@
 ## Releases:
-- Current Release: [v0.1.1]
+- Current Release: [v0.1.2]
 
 ## Changelog:
+- **v0.1.2**: Fixed a bug in default values. Added warnings for macOS/Linux systems. Added cancel operation commands.
 - **v0.1.1**: Added automatic version fetching through git tags.
 - **v0.1.0**: Initial release with basic functionality.
 
