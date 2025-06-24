@@ -4,3 +4,6 @@
 .project/
 project/
 target/
+.bloop/
+.metals/
+.vscode/

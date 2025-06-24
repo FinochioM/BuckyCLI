@@ -18,7 +18,7 @@ object ProjectGenerator:
 
   private def createProjectStructure(projectName: String, projectPath: String, buildSystem: String): Unit =
     try
-      val basePath = os.Path(projectPath)
+      val basePath = os.Path(projectPath, os.pwd)
       val fullProjectPath = basePath / projectName
 
       println("Creating project directory...")
