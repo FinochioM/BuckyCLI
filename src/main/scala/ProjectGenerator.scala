@@ -30,7 +30,7 @@ object ProjectGenerator:
       println("Setting up project files...")
       TemplateGenerator.createBuildFile(fullProjectPath, buildSystem)
       TemplateGenerator.createMainTemplate(fullProjectPath)
-      copyRequiredDlls(fullProjectPath)
+      copyRequiredNativeLibraries(fullProjectPath)
 
       println("Creating assets directory...")
       os.makeDir.all(fullProjectPath / "assets")
@@ -38,6 +38,18 @@ object ProjectGenerator:
       println()
       println(s"Project '$projectName' created successfully!")
       println(s"Location: ${fullProjectPath.toString}")
+
+      if !OSDetection.isWindows then
+        println()
+        println("  WARNING: Generated project requires manual configuration on non-Windows systems")
+        println("   - Install SDL2, GLEW, and STB development libraries for your platform")
+        println("   - Update the native linking paths in your build configuration")
+        if OSDetection.isLinux then
+          println("   - For Ubuntu/Debian: sudo apt-get install libsdl2-dev libglew-dev")
+          println("   - For Fedora: sudo dnf install SDL2-devel glew-devel")
+        else if OSDetection.isMac then
+          println("   - For macOS: brew install sdl2 glew")
+
       println()
       println("To build and run your project:")
       buildSystem match
@@ -50,9 +62,13 @@ object ProjectGenerator:
 
       println()
       println("Your project includes:")
-      println("  - S2D library (version 1.0.1) - automatically imported")
-      println("  - SDL2, GLEW, and STB libraries - automatically configured")
-      println("  - Required DLLs - copied to project root")
+      println("  - S2D library - automatically imported")
+      if OSDetection.isWindows then
+        println("  - SDL2, GLEW, and STB libraries - automatically configured")
+        println("  - Required DLLs - copied to project root")
+      else
+        println("  - SDL2, GLEW, and STB libraries - manual setup required")
+        println("  - Native libraries - install manually for your platform")
       println("  - Template main.scala with S2D Window creation")
 
     catch
@@ -69,6 +85,13 @@ object ProjectGenerator:
       .setDirectory(librariesPath.toIO)
       .call()
       .close()
+
+  private def copyRequiredNativeLibraries(projectPath: os.Path): Unit =
+    if OSDetection.isWindows then
+      copyRequiredDlls(projectPath)
+    else
+      println("Warning: Native library files (.so/.dylib) not copied - Windows DLLs don't work on this platform")
+      println("You'll need to install SDL2, GLEW, and STB libraries for your system manually")
 
   private def copyRequiredDlls(projectPath: os.Path): Unit =
     val sdl2Dll = projectPath / "libraries" / "SDL2" / "bin" / "SDL2.dll"

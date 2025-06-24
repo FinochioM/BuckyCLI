@@ -65,6 +65,14 @@ object TemplateGenerator:
     println("Version: " + S2D_VERSION)
 
   private def createSbtBuildContent(projectPath: os.Path): String =
+    if OSDetection.isWindows then createWindowsSbtContent(projectPath)
+    else createUnixSbtContent(projectPath)
+
+  private def createScalaCliBuildContent(projectPath: os.Path): String =
+    if OSDetection.isWindows then createWindowsScalaCliContent(projectPath)
+    else createUnixScalaCliContent(projectPath)
+
+  private def createWindowsSbtContent(projectPath: os.Path): String =
     val absoluteProjectPath = projectPath.toString.replace("\\", "\\\\")
     s"""ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.3.6"
@@ -97,7 +105,47 @@ lazy val root = (project in file("."))
   )
   .enablePlugins(ScalaNativePlugin)"""
 
-  private def createScalaCliBuildContent(projectPath: os.Path): String =
+  private def createUnixSbtContent(projectPath: os.Path): String =
+    s"""ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / scalaVersion := "3.3.6"
+
+lazy val root = (project in file("."))
+  .settings(
+    name := "s2d-project",
+    libraryDependencies ++= Seq(
+      "$S2D_GROUP_ID" % "$S2D_ARTIFACT_ID" % "$S2D_VERSION"
+    ),
+    // WARNING: The following configuration is for Windows only
+    // You need to manually configure native library linking for your platform:
+    // 
+    // For Linux: Install SDL2, GLEW, and STB development packages
+    // Example: sudo apt-get install libsdl2-dev libglew-dev libstb-dev
+    // 
+    // For macOS: Install via Homebrew
+    // Example: brew install sdl2 glew
+    // 
+    // Then update the linking options below with correct paths for your system
+    
+    /* 
+    nativeConfig ~= { c =>
+      c.withLinkingOptions(c.linkingOptions ++ Seq(
+        // Add your platform-specific library paths here
+        "-lSDL2",
+        "-lSDL2main", 
+        "-lGLEW",
+        "-lGL"  // or "-framework OpenGL" for macOS
+      ))
+    },
+    nativeConfig ~= { c =>
+      c.withCompileOptions(c.compileOptions ++ Seq(
+        // Add your platform-specific include paths here
+      ))
+    }
+    */
+  )
+  .enablePlugins(ScalaNativePlugin)"""
+
+  private def createWindowsScalaCliContent(projectPath: os.Path): String =
     val absoluteProjectPath = projectPath.toString.replace("\\", "\\\\")
     s"""//> using scala 3.3.6
 //> using platform native
@@ -116,6 +164,33 @@ lazy val root = (project in file("."))
 //> using nativeLinking "-lglew32"
 //> using nativeLinking "-lopengl32"
 //> using nativeLinking "-lglu32"
+"""
+
+  private def createUnixScalaCliContent(projectPath: os.Path): String =
+    s"""//> using scala 3.3.6
+//> using platform native
+//> using dep "$S2D_GROUP_ID:$S2D_ARTIFACT_ID:$S2D_VERSION"
+
+// WARNING: This project was generated on a Unix/Linux/macOS system
+// The native library configuration below is commented out and needs manual setup
+// 
+// For Linux: Install development packages
+// Example: sudo apt-get install libsdl2-dev libglew-dev
+// 
+// For macOS: Install via Homebrew  
+// Example: brew install sdl2 glew
+//
+// Then uncomment and adjust the paths below:
+
+/*
+//> using nativeCompile "-I/usr/include/SDL2"
+//> using nativeCompile "-I/usr/include/GL" 
+
+//> using nativeLinking "-lSDL2"
+//> using nativeLinking "-lSDL2main"
+//> using nativeLinking "-lGLEW"
+//> using nativeLinking "-lGL"
+*/
 """
 
   def createMainTemplate(projectPath: os.Path): Unit =
