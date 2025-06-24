@@ -6,6 +6,8 @@ def main(args: String*): Unit =
       ProjectGenerator.generate()
     case "--help" :: _ =>
       Help.show()
+    case "--cancel" :: _ =>
+      println("Operation cancelled.")
     case Nil =>
       Help.show()
     case unknown =>

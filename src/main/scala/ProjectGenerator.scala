@@ -6,9 +6,23 @@ object ProjectGenerator:
     println("Starting S2D project template generation...")
     println()
 
-    val projectName = UserInput.getString("Enter project name", "my-s2d-project")
-    val buildSystem = UserInput.getBuildSystem()
-    val projectPath = UserInput.getString("Enter project path", ".")
+    val projectName = UserInput.getString("Enter project name", "my-s2d-project") match
+      case Some(name) => name
+      case None => 
+        println("Operation cancelled.")
+        return
+
+    val buildSystem = UserInput.getBuildSystem() match
+      case Some(system) => system
+      case None =>
+        println("Operation cancelled.")
+        return
+
+    val projectPath = UserInput.getString("Enter project path", ".") match
+      case Some(path) => path
+      case None =>
+        println("Operation cancelled.")
+        return
 
     println(s"Creating project '$projectName' at '$projectPath'")
     println(s"Using build system: $buildSystem")
